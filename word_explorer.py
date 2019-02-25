@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import time
 import random
 import queue
+import os
 
 GLOBAL_A = set()
 GLOBAL_B = set()
@@ -19,6 +20,8 @@ class RecursiveSynonymFinder:
         self.__title_suffix = 'synonym of '
 
         self.__output_root_folder = f'output/{word_class}/'
+        self.__create_folder_if_absent(self.__output_root_folder)
+
         self.__word_class_matches_file = self.__output_root_folder + 'matches.txt'
         self.__expanded_matches_file = self.__output_root_folder + 'expanded_matches.txt'
         self.__negative_matches_file = self.__output_root_folder + 'words_not_of_class.txt'
@@ -151,18 +154,28 @@ class RecursiveSynonymFinder:
             except Exception as e:
                 print(f'[lookup_word] ERROR ({word}):', e)
                 time.sleep(self.__delay_on_error)
+                self.__sleep_time += self.__delay_on_error
 
     def search_for_synonyms(self, word: str) -> set:
         wait_time = self.__get_random_wait_time(self.__delay_interval_search)
         time.sleep(wait_time)
         self.__sleep_time += wait_time
-        # print(f'[depth={depth}][{word.capitalize()}] Waited {wait_time}s before searching.')
-        result = self.__session.get(self.__search_url, params={'q': word})
-        doc: BeautifulSoup = BeautifulSoup(result.text, 'html5lib')
-        sub_search = self.__title_suffix + word
-        synonyms = doc.find_all('a', {'title': sub_search})
-        print(f'[Synonym search] Found {len(synonyms)} synonyms for the word "{word}".')
-        return {i.text for i in synonyms}
+        for i in range(self.__lookup_max_tries):
+            try:
+                # print(f'[depth={depth}][{word.capitalize()}] Waited {wait_time}s before searching.')
+                result = self.__session.get(self.__search_url, params={'q': word})
+                doc: BeautifulSoup = BeautifulSoup(result.text, 'html5lib')
+                sub_search = self.__title_suffix + word
+                synonyms = doc.find_all('a', {'title': sub_search})
+                print(f'[Synonym search] Found {len(synonyms)} synonyms for the word "{word}".')
+                return {i.text for i in synonyms}
+            except Exception as e:
+                print(f'[search_for_synonyms] ERROR ({word}):', e)
+                time.sleep(self.__delay_on_error)
+                self.__sleep_time += self.__delay_on_error
+        return set()
+
+
 
     @staticmethod
     def __get_params(url: str):
@@ -213,7 +226,11 @@ class RecursiveSynonymFinder:
     def is_equal(a: str, b: str):
         return a.lower().strip() == b.lower().strip()
 
+    @staticmethod
+    def __create_folder_if_absent(directory: str) -> None:
+        os.makedirs(directory, exist_ok=True)
+
 
 if __name__ == '__main__':
-    test = RecursiveSynonymFinder('substantiv', 'bok')
+    test = RecursiveSynonymFinder('adjektiv', 'fin')
     test.do_search()
