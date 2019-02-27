@@ -1,0 +1,19 @@
+import pandas as pd
+
+def org_unit_name_creator(n: int = None):
+    base_path = r'C:\Dev\Python\word-explorer\word-explorer\resources'
+    word_classes = ['adjective', 'adverb', 'noun']
+    words = dict()
+    for word_class in word_classes:
+        words[word_class] = pd.read_csv(f'{base_path}\\{word_class}s.txt')
+
+    i = 0
+    while n is None or i < n:
+        yield ' '.join(str(i).capitalize() for i in [
+            words['adverb'].sample().values[0][0],
+            words['adjective'].sample().values[0][0],
+            words['noun'].sample().values[0][0],
+            '-',
+            i
+        ])
+        i += 1

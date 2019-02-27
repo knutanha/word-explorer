@@ -186,7 +186,7 @@ class RecursiveSynonymFinder:
         return random.random() * (interval[1] - interval[0]) + interval[0]
 
     def __write_data_to_files(self):
-        print('[I/O] Writing data to files')
+        print('[I/O] Writing resources to files')
         self.__write_to_matches_file()
         self.__write_to_expanded_matches_file()
         self.__write_to_negative_matches_file()
@@ -232,5 +232,5 @@ class RecursiveSynonymFinder:
 
 
 if __name__ == '__main__':
-    test = RecursiveSynonymFinder('adjektiv', 'fin')
+    test = RecursiveSynonymFinder('substantiv', 'bil')
     test.do_search()
