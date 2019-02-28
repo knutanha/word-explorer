@@ -1,11 +1,15 @@
+import time as t
 import anytree as tree
 import pandas as pd
 import random
-import matplotlib.pyplot as plt
 from scipy.stats import truncnorm
 import itertools
 import name_creator as nc
 import numpy as np
+
+# import cProfile
+# import pstats
+# import matplotlib.pyplot as plt
 
 
 class OrgUnit:
@@ -87,7 +91,10 @@ class Employee:
         self.__id = id
 
     def __repr__(self) -> str:
-        return f'Employee[{self.__id}]<{self.__name_components[0]} {self.__name_components[1]} ({self.__name_components[2]})>'
+        return (
+                f'Employee[{self.__id}]' +
+                f'<{self.__name_components[0]} {self.__name_components[1]} ({self.__name_components[2]})>'
+        )
 
 
 def org_unit_tree_creator(n, a, b):
@@ -100,7 +107,7 @@ def org_unit_tree_creator(n, a, b):
         # TODO: Tends to pick from large clusters
         selection = 0
         if len(leaf_nodes) > 1:
-            dist = get_truncated_normal(2, sd=b//2, low=0, upp=len(leaf_nodes)-1)  # Selects the closest
+            dist = get_truncated_normal(2, sd=b // 2, low=0, upp=len(leaf_nodes) - 1)  # Selects the closest
             # next_parent_node = leaf_nodes.pop(random.randint(0, len(leaf_nodes) - 1))
             selection = int(dist.rvs(1)[0])
         next_parent_node = leaf_nodes.pop(selection)
@@ -126,7 +133,7 @@ def print_tree(root: tree.Node):
         print("%s%s" % (pre, node.name))
 
 
-def populate_tree_with_employees(n: int, root: tree.Node, node_min: int, node_max: int):
+def populate_tree_with_employees(n: int, root: tree.Node):
     # TODO: Make sure that number of employees is at least as large as the number of org units
     top_nodes = root.children
     # distribute total number of employees in each top node
@@ -152,6 +159,7 @@ def populate_tree_with_employees(n: int, root: tree.Node, node_min: int, node_ma
         pop = population_dist_reordered[i]
         # print('descendants', top_node.descendants)
         candidates = top_node.descendants
+        print(f'[populate_tree_with_employees] Populating {top_node.name} with {pop} employments.')
         if len(candidates) == 0:
             candidates = [top_node]
         pop_dist = distribute_over_objects(pop, candidates)
@@ -184,16 +192,44 @@ def distribute_over_objects(n: int, objects: list, mean=8, sd=20, low=1, upp=30)
     return population_dist
 
 
-if __name__ == '__main__':
-    a = org_unit_tree_creator(100, 1, 8)
+def company_creator(ou_n, emp_n, ou_range: tuple = (1, 8), print_ous=False):
+    main_time = t.time()
+
+    start_time = t.time()
+
+    a = org_unit_tree_creator(ou_n, ou_range[0], ou_range[1])
+
+    org_unit_tree_creator_time = t.time() - start_time
+
     top_descendant_len = [len(i.descendants) for i in a.children]
-    print_tree(a)
+    if print_ous:
+        print_tree(a)
 
-    populate_tree_with_employees(1000, a, 0, 1)
-    #print_tree(a)
+    start_time = t.time()
+    populate_tree_with_employees(emp_n, a)
+    populate_tree_with_employees_time = t.time() - start_time
 
-    [print(i.name, 'deps=', top_descendant_len[k], 'emps=', len([j for j in i.descendants if isinstance(j.name, Employee)])) for k, i in enumerate(a.children)]
+    print('\n--- DONE! ---\n')
+    [print(i.name, '\n\tdeps =', top_descendant_len[k], '\n\temps =',
+           len([j for j in i.descendants if isinstance(j.name, Employee)])) for k, i in enumerate(a.children)]
 
-    # fig, ax = plt.subplots(1)
-    # ax.hist(x.rvs(10000), normed=True)
-    # plt.show()
+    main_time = t.time() - main_time
+    print('\n\t'.join([
+        f'\ntime spent:',
+        f'total = {main_time}s',
+        f'ous   = {org_unit_tree_creator_time}s',
+        f'emps  = {populate_tree_with_employees_time}s'
+    ]))
+    return a
+
+
+def to_seconds(ns: int) -> float:
+    return ns / 1000000000
+
+
+if __name__ == '__main__':
+    company_creator(1000, 20000, print_ous=True)
+    # log_file = 'output/company_creator.log'
+    # p = cProfile.run('company_creator(100, 1000)', log_file)
+    # ps = pstats.Stats(log_file)
+    # ps.sort_stats('cumulative').print_stats(10)
