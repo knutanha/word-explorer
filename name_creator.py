@@ -2,7 +2,7 @@ import pandas as pd
 import random
 
 
-def generate_names(n: int = 1) -> tuple:
+def generate_names(n: int = None) -> tuple:
     # TODO: Use probability
 
     """
@@ -38,12 +38,16 @@ def generate_names(n: int = 1) -> tuple:
 
     female_names = first_names[first_names['gender'].isin(['F', '?F', '1M', '?'])]
     male_names = first_names[first_names['gender'].isin(['M', '?M', '1F', '?'])]
-    for _ in range(n):
+    while n is None or n > 0:
         gender = random.choice(('F', 'M'))
         yield (
             str.capitalize((female_names if gender == 'F' else male_names).sample().name.values[0].replace('+', ' ')),
             str.capitalize(surnames.sample().name.values[0].replace('+', ' ')),
             gender
         )
+        if n:
+            n -= 1
 
-print(list(generate_names(10)))
+
+if __name__ == '__main__':
+    print(list(generate_names(10)))
